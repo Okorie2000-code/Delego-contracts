@@ -1,0 +1,8 @@
+[package]
+name = "delego-contracts"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "delego_contracts"
+path = "src/lib.rs"
