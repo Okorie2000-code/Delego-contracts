@@ -2,9 +2,9 @@ use crate::errors::PermissionError;
 use std::collections::HashMap;
 
 /// Maximum number of times a delegation can be sub-delegated.
-/// Depth 0 = owner GåÆ delegate (first grant).
-/// Depth 1 = delegate GåÆ sub-delegate (one level down).
-/// Depth 2 = sub-delegate GåÆ sub-sub-delegate GÇö REJECTED.
+/// Depth 0 = owner -> delegate (first grant).
+/// Depth 1 = delegate -> sub-delegate (one level down).
+/// Depth 2 = sub-delegate -> sub-sub-delegate -> REJECTED.
 pub const MAX_DELEGATION_DEPTH: u8 = 2;
 
 /// A unique identifier for a delegation record (e.g. a hash or counter).
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn privilege_escalation_disjoint_scopes() {
-        // parent = 0b1010, sub = 0b0101 GÇö no bits overlap at all.
+        // parent = 0b1010, sub = 0b0101 -> no bits overlap at all.
         assert_eq!(
             validate_sub_delegation(0b1010, 0b0101),
             Err(PermissionError::PrivilegeEscalationAttempt)
@@ -250,7 +250,7 @@ mod tests {
     #[test]
     fn sub_delegate_with_subset_scope_succeeds() {
         let (mut store, root_id) = setup();
-        // DELEGATE_A sub-delegates 0b0011 to DELEGATE_B GÇö valid subset.
+        // DELEGATE_A sub-delegates 0b0011 to DELEGATE_B -> valid subset.
         let sub_id = store
             .sub_delegate(DELEGATE_A, root_id, DELEGATE_B, 0b0011)
             .expect("valid sub-delegation should succeed");
@@ -279,7 +279,7 @@ mod tests {
         // DELEGATE_A only has 0b0011.
         let root_id = store.grant(OWNER, DELEGATE_A, 0b0011);
 
-        // DELEGATE_A tries to grant 0b1111 GÇö escalation.
+        // DELEGATE_A tries to grant 0b1111 -> escalation.
         let result = store.sub_delegate(DELEGATE_A, root_id, DELEGATE_B, 0b1111);
         assert_eq!(result, Err(PermissionError::PrivilegeEscalationAttempt));
     }
@@ -288,12 +288,12 @@ mod tests {
     fn sub_delegate_max_depth_exceeded() {
         let (mut store, root_id) = setup();
 
-        // Depth 0 GåÆ 1: DELEGATE_A GåÆ DELEGATE_B.
+        // Depth 0 -> 1: DELEGATE_A -> DELEGATE_B.
         let sub_id = store
             .sub_delegate(DELEGATE_A, root_id, DELEGATE_B, 0b1111)
             .unwrap();
 
-        // Depth 1 GåÆ 2: DELEGATE_B GåÆ DELEGATE_C GÇö must be rejected.
+        // Depth 1 -> 2: DELEGATE_B -> DELEGATE_C -> must be rejected.
         let result = store.sub_delegate(DELEGATE_B, sub_id, DELEGATE_C, 0b0001);
         assert_eq!(result, Err(PermissionError::MaxDelegationDepthExceeded));
     }
@@ -308,7 +308,7 @@ mod tests {
     #[test]
     fn sub_delegate_by_non_owner_returns_unauthorized() {
         let (mut store, root_id) = setup();
-        // DELEGATE_B is not the delegate of root_id GÇö DELEGATE_A is.
+        // DELEGATE_B is not the delegate of root_id -> DELEGATE_A is.
         let result = store.sub_delegate(DELEGATE_B, root_id, DELEGATE_C, 0b0001);
         assert_eq!(result, Err(PermissionError::Unauthorized));
     }
